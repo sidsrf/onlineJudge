@@ -122,7 +122,7 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.route("/").get((req, res) => {
+app.route("/auth").post((req, res) => {
   if (req.isAuthenticated()) {
     return res.send({
       _id: req.user._id,
@@ -132,7 +132,7 @@ app.route("/").get((req, res) => {
   res.json({ username: null });
 });
 
-app.route("/login").post((req, res, next) => {
+app.route("/auth/login").post((req, res, next) => {
   if (req.isAuthenticated()) {
     return res.send({ message: "an account is already logged in" });
   }
@@ -142,7 +142,7 @@ app.route("/login").post((req, res, next) => {
   next();
 }, login);
 
-app.route("/signup").post(
+app.route("/auth/signup").post(
   (req, res, next) => {
     if (req.isAuthenticated()) {
       return res.send({ error: "cannot signup while logged in" });
@@ -180,7 +180,7 @@ app.route("/signup").post(
   login
 );
 
-app.route("/logout").post((req, res) => {
+app.route("/auth/logout").post((req, res) => {
   if (req.isAuthenticated()) {
     req.logout((err) => {
       if (err) {

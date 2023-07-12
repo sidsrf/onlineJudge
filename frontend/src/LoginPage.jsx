@@ -4,7 +4,7 @@ const LoginPage = ({
   updateState,
   username,
   password,
-  onLogin,
+  onFormSubmit,
   onLogout,
 }) => {
   const handleChange = (e) => {
@@ -20,27 +20,39 @@ const LoginPage = ({
           {!isLoggedIn ? (
             <form
               className="flex flex-col gap-10 border border-black p-10"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                console.log(username, password, formAction);
-                if (formAction == "login") {
-                  let res = onLogin({ username: username, password: password });
-                  setMessage((pre) => {
-                    return res;
-                  });
-                  setTimeout(() => {
+                onFormSubmit({
+                  username: username,
+                  password: password,
+                  action: formAction,
+                })
+                  .then((res) => {
                     setMessage((pre) => {
-                      return "";
+                      return res;
                     });
-                  }, 5000);
-                }
+                    setTimeout(() => {
+                      setMessage((pre) => {
+                        return "";
+                      });
+                    }, 5000);
+                  })
+                  .catch((err) => {
+                    setMessage((pre) => {
+                      return "some error occured";
+                    });
+                    setTimeout(() => {
+                      setMessage((pre) => {
+                        return "";
+                      });
+                    }, 5000);
+                  });
               }}
             >
               <select
                 name="formAction"
                 id="formAction"
                 onChange={(e) => {
-                  //   console.log(e.target.value);
                   setFormAction(e.target.value);
                 }}
               >
@@ -55,6 +67,7 @@ const LoginPage = ({
                   id="username"
                   className="p-2"
                   onChange={handleChange}
+                  required
                 />
               </label>
               <label htmlFor="password">
@@ -65,6 +78,7 @@ const LoginPage = ({
                   id="password"
                   onChange={handleChange}
                   className="p-2"
+                  required
                 />
               </label>
               <input
@@ -77,7 +91,16 @@ const LoginPage = ({
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                onLogout();
+                onLogout().then((res) => {
+                  setMessage((pre) => {
+                    return res;
+                  });
+                  setTimeout(() => {
+                    setMessage((pre) => {
+                      return "";
+                    });
+                  }, 5000);
+                });
               }}
             >
               <input type="submit" value="LOGOUT" />

@@ -1,11 +1,9 @@
-import { Route } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Route, BrowserRouter, Routes } from "react-router-dom";
 import Home from "./Home";
 import Navbar from "./Navbar";
-import { BrowserRouter } from "react-router-dom";
 import LoginPage from "./LoginPage";
 import Problems from "./Problems";
-import { Routes } from "react-router-dom";
-import { useState } from "react";
 import axios from "axios";
 const App = () => {
   let [state, setState] = useState({
@@ -23,28 +21,78 @@ const App = () => {
     });
   };
 
-  const login = ({ username, password }) => {
-    if (username == 1 && password == 2) {
-      updateState("isLoggedIn", true);
-      return "success";
+  useEffect(() => {
+    if (!state.isLoggedIn) {
+      axios
+        .post("http://localhost:3000/auth", {}, { withCredentials: true })
+        .then((res) => {
+          if (res.data.username != null) {
+            updateState("username", res.data.username);
+            updateState("isLoggedIn", true);
+          }
+        });
     }
-    return "failed";
-  };
+  });
+
+  const api = axios.create({
+    baseURL: "http://localhost:3000",
+    timeout: 1000,
+    withCredentials: true,
+  });
 
   const logout = () => {
-    updateState("isLoggedIn", false);
-    updateState("username", null);
-    updateState("password", null);
-    return "success";
+    return api
+      .post("/auth/logout")
+      .then((res) => {
+        if (res.data.message == "Logout successful") {
+          updateState("isLoggedIn", false);
+          updateState("username", null);
+          updateState("password", null);
+          return "Logout successful";
+        } else {
+          return res.data.message || res.data.error;
+        }
+      })
+      .catch((err) => {
+        return "internal error";
+      });
+  };
+
+  const handleAuthForm = async ({ username, password, action }) => {
+    return api
+      .post(`/auth/${action}`, { username, password })
+      .then(({ data }) => {
+        if (data.username) {
+          updateState("username", data.username);
+          updateState("isLoggedIn", true);
+          return `${action} successful`;
+        }
+        return data.message || data.error;
+      })
+      .catch((err) => {
+        return "interal error";
+      });
   };
 
   return (
     <>
       <div className="flex flex-col min-h-screen">
         <BrowserRouter>
-          <Navbar isLoggedIn={state.isLoggedIn} onLogout={logout}></Navbar>
+          <Navbar
+            isLoggedIn={state.isLoggedIn}
+            onLogout={logout}
+            username={state.username}
+          ></Navbar>
           <Routes>
-            <Route path="/" element={<Home></Home>}></Route>
+            <Route
+              path="/"
+              element={
+                <Home
+                  username={state.username}
+                  isLoggedIn={state.isLoggedIn}
+                ></Home>
+              }
+            ></Route>
             <Route
               path="/login"
               element={
@@ -53,7 +101,7 @@ const App = () => {
                   username={state.username}
                   password={state.password}
                   updateState={updateState}
-                  onLogin={login}
+                  onFormSubmit={handleAuthForm}
                   onLogout={logout}
                 ></LoginPage>
               }

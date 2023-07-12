@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-const Navbar = ({ isLoggedIn, username, showName, isActive, onLogout }) => {
+const Navbar = ({ isLoggedIn, username, onLogout }) => {
   return (
     <>
       <div className="flex w-full bg-red-400 justify-between px-5 py-2">
@@ -14,7 +14,7 @@ const Navbar = ({ isLoggedIn, username, showName, isActive, onLogout }) => {
           </li>
         </ul>
         {isLoggedIn ? (
-          <button onClick={onLogout}>LOGOUT</button>
+          <button onClick={onLogout}>LOGOUT  {username}</button>
         ) : (
           <Link to="/login">LOGIN</Link>
         )}

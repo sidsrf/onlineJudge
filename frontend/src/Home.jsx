@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-const Home = () => {
+const Home = ({ username, isLoggedIn }) => {
   return (
     <>
       <div className="flex flex-col flex-grow justify-center">
@@ -8,7 +8,7 @@ const Home = () => {
             <div className="text-5xl">minimalistic online judge</div>
             <div className="flex justify-around">
               <Link to="/problems">PROBLEMS</Link>
-              <Link to="/login">LOGIN/SIGNUP</Link>
+              <Link to="/login">{ isLoggedIn ? "LOGOUT "+username : "LOGIN"}</Link>
             </div>
           </div>
         </div>
