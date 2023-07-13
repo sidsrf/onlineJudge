@@ -215,6 +215,7 @@ app.route("/auth/logout").post((req, res) => {
 });
 
 app.route("/problems").get((req, res) => {
+  console.log('fetching problems')
   Problem.find({},'_id pname')
     .then((problems) => {
       res.send(problems);
