@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import Root from "./Root";
 import Home from "./Home";
 import LoginPage from "./LoginPage";
 import Problems from "./Problems";
-import axios from "axios";
 import Submissons from "./Submissions";
-// import Problem from "./Problem";
-import Root from "./Root";
+import Problem from "./Problem";
+import axios from "axios";
 const App = () => {
   let [state, setState] = useState({
     isLoggedIn: false,
@@ -36,19 +36,19 @@ const App = () => {
   });
 
   const fetchProblems = async () => {
-    return api.get("/problems").then((res) => {
-      if (res.data.error) {
-        setProblems((pre) => {
-          return [];
-        });
-        // return "error while retrieving problems";
-      } else {
-        setProblems((pre) => {
-          return res.data;
-        });
-        // return res.data;
-      }
-    });
+    console.log("fetchproblems functoin");
+
+    const p = await api.get("/problems");
+    console.log("fetchp p", p);
+
+    if (p.data.error) {
+      return [];
+    } else {
+      setProblems((pre) => {
+        return p.data;
+      });
+      return p.data;
+    }
   };
   const getUser = () => {
     api.post("/auth").then((res) => {
@@ -142,6 +142,34 @@ const App = () => {
           element: (
             <Problems onFetch={fetchProblems} problems={problems}></Problems>
           ),
+        },
+        {
+          path: "/problem/:pno",
+          loader: async ({ params }) => {
+            console.log("problems", problems);
+            if (problems.length != 0) {
+              console.log(parseInt(params.pno));
+              if (parseInt(params.pno) < problems.length) {
+                console.log(problems[parseInt(params.pno)]);
+                return problems[parseInt(params.pno)];
+              } else {
+                return { error: "code 1" };
+              }
+            } else {
+              const p = await fetchProblems();
+              console.log("p loader", p);
+              if (parseInt(params.pno) < p.length) {
+                return p[parseInt(params.pno)];
+              } else {
+                return { error: "code 2" };
+              }
+            }
+          },
+          element: <Problem problem={() => {}}></Problem>,
+        },
+        {
+          path: "submissions",
+          element: <Submissons></Submissons>,
         },
       ],
     },
