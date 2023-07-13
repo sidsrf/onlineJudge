@@ -8,6 +8,7 @@ const MongoStore = require("connect-mongo");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const cors = require("cors");
+// const { default: Problems } = require("../frontend/src/Problems");
 
 const { PORT, MONGO_URI, SECRET } = process.env;
 const app = express();
@@ -54,6 +55,26 @@ userSchema.pre("save", function (next) {
 });
 
 const User = model("User", userSchema);
+
+const problemSchema = new Schema({
+  pname: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  description: {
+    type: String,
+    required: true,
+  },
+  sampleinput: {
+    type: String,
+  },
+  sampleoutput: {
+    type: String,
+  },
+});
+
+const Problem = model("Problem", problemSchema);
 
 passport.serializeUser((user, done) => {
   console.log(`Serialising user with username: ${user.username}`);
@@ -191,6 +212,16 @@ app.route("/auth/logout").post((req, res) => {
   } else {
     res.send({ message: "no user to log out" });
   }
+});
+
+app.route("/problems").get((req, res) => {
+  Problem.find({},'_id pname')
+    .then((problems) => {
+      res.send(problems);
+    })
+    .catch((err) => {
+      res.json({ error: "Some error occured" });
+    });
 });
 
 app.listen(PORT, () => {

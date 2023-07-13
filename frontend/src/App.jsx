@@ -5,12 +5,21 @@ import Navbar from "./Navbar";
 import LoginPage from "./LoginPage";
 import Problems from "./Problems";
 import axios from "axios";
+import Submissons from "./Submissions";
+import Problem from "./Problem";
 const App = () => {
   let [state, setState] = useState({
     isLoggedIn: false,
     username: null,
     password: null,
   });
+
+  let [problems, setProblems] = useState([]);
+
+  useEffect(() => {
+    console.log("app useeffect");
+    getUser();
+  }, []);
 
   const updateState = (key, value) => {
     setState((pre) => {
@@ -21,33 +30,50 @@ const App = () => {
     });
   };
 
-  useEffect(() => {
-    if (!state.isLoggedIn) {
-      axios
-        .post("http://localhost:3000/auth", {}, { withCredentials: true })
-        .then((res) => {
-          if (res.data.username != null) {
-            updateState("username", res.data.username);
-            updateState("isLoggedIn", true);
-          }
-        });
-    }
-  });
-
   const api = axios.create({
     baseURL: "http://localhost:3000",
-    timeout: 1000,
     withCredentials: true,
   });
+
+  const fetchProblems = async () => {
+    api.get("/problems").then((res) => {
+      if (res.data.error) {
+        setProblems((pre) => {
+          return [];
+        });
+      } else {
+        setProblems((pre) => {
+          return res.data;
+        });
+      }
+    });
+  };
+  const getUser = () => {
+    api.post("/auth").then((res) => {
+      if (res.data.username != null) {
+        setState({
+          isLoggedIn: true,
+          username: res.data.username,
+        });
+      } else {
+        setState({
+          isLoggedIn: false,
+          username: null,
+        });
+      }
+    });
+  };
 
   const logout = () => {
     return api
       .post("/auth/logout")
       .then((res) => {
         if (res.data.message == "Logout successful") {
-          updateState("isLoggedIn", false);
-          updateState("username", null);
-          updateState("password", null);
+          setState({
+            isLoggedIn: false,
+            username: null,
+            password: null,
+          });
           return "Logout successful";
         } else {
           return res.data.message || res.data.error;
@@ -63,8 +89,10 @@ const App = () => {
       .post(`/auth/${action}`, { username, password })
       .then(({ data }) => {
         if (data.username) {
-          updateState("username", data.username);
-          updateState("isLoggedIn", true);
+          setState({
+            isLoggedIn: true,
+            username: data.username,
+          });
           return `${action} successful`;
         }
         return data.message || data.error;
@@ -106,7 +134,25 @@ const App = () => {
                 ></LoginPage>
               }
             ></Route>
-            <Route path="/problems" element={<Problems></Problems>}></Route>
+            <Route
+              path="/problems"
+              element={
+                <Problems
+                  onFetch={fetchProblems}
+                  problems={problems}
+                ></Problems>
+              }
+            ></Route>
+            {/* <Route
+              path="/problem/:pno"
+              element={
+                <Problem problems={problems} onFetch={fetchProblems}></Problem>
+              }
+            ></Route> */}
+            <Route
+              path="/submissions"
+              element={<Submissons></Submissons>}
+            ></Route>
           </Routes>
         </BrowserRouter>
       </div>

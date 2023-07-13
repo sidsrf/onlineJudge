@@ -12,12 +12,11 @@ const Navbar = ({ isLoggedIn, username, onLogout }) => {
           <li>
             <Link to="/problems">PROBLEMS</Link>
           </li>
+          <li>
+            <Link to="/submissions">SUBMISSIONS</Link>
+          </li>
         </ul>
-        {isLoggedIn ? (
-          <button onClick={onLogout}>LOGOUT  {username}</button>
-        ) : (
-          <Link to="/login">LOGIN</Link>
-        )}
+        <Link to="/login">{isLoggedIn ? username : "LOGIN"}</Link>
       </div>
     </>
   );
