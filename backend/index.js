@@ -8,9 +8,9 @@ const MongoStore = require("connect-mongo");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const cors = require("cors");
-// const { default: Problems } = require("../frontend/src/Problems");
 
 const { PORT, MONGO_URI, SECRET } = process.env;
+const p = require("./defaultProblems");
 const app = express();
 
 const Schema = mongoose.Schema,
@@ -24,6 +24,24 @@ mongoose
   .catch((err) => {
     console.log("Not connected to DB");
   });
+
+const counterSchema = new Schema({
+  fieldName: {
+    type: String,
+  },
+  count: {
+    type: Number,
+    default: 0,
+  },
+});
+
+const Counter = model("Counter", counterSchema);
+
+Counter.findOne({ fieldName: "problems" }).then((counter) => {
+  if (!counter) {
+    new Counter({ fieldName: "problems" }).save();
+  }
+});
 
 const userSchema = new Schema({
   username: {
@@ -57,6 +75,9 @@ userSchema.pre("save", function (next) {
 const User = model("User", userSchema);
 
 const problemSchema = new Schema({
+  pno: {
+    type: Number,
+  },
   pname: {
     type: String,
     required: true,
@@ -74,7 +95,24 @@ const problemSchema = new Schema({
   },
 });
 
+problemSchema.pre("save", function (next) {
+  Counter.findOneAndUpdate(
+    { fieldName: "problems" },
+    { $inc: { count: 1 } }
+  ).then((counter) => {
+    this.pno = counter.count;
+    next();
+  });
+});
+
 const Problem = model("Problem", problemSchema);
+
+p.forEach(async (problem) => {
+  const prob = await Problem.findOne(problem);
+  if (!prob) {
+    new Problem(problem).save();
+  }
+});
 
 passport.serializeUser((user, done) => {
   console.log(`Serialising user with username: ${user.username}`);
@@ -215,13 +253,24 @@ app.route("/auth/logout").post((req, res) => {
 });
 
 app.route("/problems").get((req, res) => {
-  Problem.find({},'_id pname')
+  console.log("fetching problems");
+  Problem.find({}, "_id pname pno")
     .then((problems) => {
       res.send(problems);
     })
     .catch((err) => {
       res.json({ error: "Some error occured" });
     });
+});
+
+app.route("/problem/:pno").get((req, res) => {
+  console.log("fetching problem", req.params["pno"]);
+  Problem.findOne({ pno: parseInt(req.params["pno"]) }).then((doc) => {
+    if (!doc) {
+      return res.send({ error: "The problem does not exist" });
+    }
+    return res.send(doc);
+  });
 });
 
 app.listen(PORT, () => {

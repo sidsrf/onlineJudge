@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { Route, BrowserRouter, Routes } from "react-router-dom";
+import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import Root from "./Root";
 import Home from "./Home";
-import Navbar from "./Navbar";
 import LoginPage from "./LoginPage";
 import Problems from "./Problems";
-import axios from "axios";
 import Submissons from "./Submissions";
 import Problem from "./Problem";
+import axios from "axios";
 const App = () => {
   let [state, setState] = useState({
     isLoggedIn: false,
@@ -36,17 +36,19 @@ const App = () => {
   });
 
   const fetchProblems = async () => {
-    api.get("/problems").then((res) => {
-      if (res.data.error) {
-        setProblems((pre) => {
-          return [];
-        });
-      } else {
-        setProblems((pre) => {
-          return res.data;
-        });
-      }
-    });
+    console.log("fetchproblems functoin");
+
+    const p = await api.get("/problems");
+    console.log("fetchp p", p);
+
+    if (p.data.error) {
+      return [];
+    } else {
+      setProblems((pre) => {
+        return p.data;
+      });
+      return p.data;
+    }
   };
   const getUser = () => {
     api.post("/auth").then((res) => {
@@ -102,60 +104,66 @@ const App = () => {
       });
   };
 
+  const routes = createBrowserRouter([
+    {
+      path: "",
+      element: (
+        <Root
+          isLoggedIn={state.isLoggedIn}
+          onLogout={logout}
+          username={state.username}
+        ></Root>
+      ),
+      children: [
+        {
+          path: "",
+          element: (
+            <Home
+              username={state.username}
+              isLoggedIn={state.isLoggedIn}
+            ></Home>
+          ),
+        },
+        {
+          path: "login",
+          element: (
+            <LoginPage
+              isLoggedIn={state.isLoggedIn}
+              username={state.username}
+              password={state.password}
+              updateState={updateState}
+              onFormSubmit={handleAuthForm}
+              onLogout={logout}
+            ></LoginPage>
+          ),
+        },
+        {
+          path: "problems",
+          loader: async () => {
+            const p = await api.get("/problems");
+            return p.data;
+          },
+          element: <Problems></Problems>,
+        },
+        {
+          path: "/problem/:pno",
+          loader: async ({ params }) => {
+            const p = await api.get(`/problem/${params.pno}`);
+            return p.data;
+          },
+          element: <Problem></Problem>,
+        },
+        {
+          path: "submissions",
+          element: <Submissons></Submissons>,
+        },
+      ],
+    },
+  ]);
+
   return (
     <>
-      <div className="flex flex-col min-h-screen">
-        <BrowserRouter>
-          <Navbar
-            isLoggedIn={state.isLoggedIn}
-            onLogout={logout}
-            username={state.username}
-          ></Navbar>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <Home
-                  username={state.username}
-                  isLoggedIn={state.isLoggedIn}
-                ></Home>
-              }
-            ></Route>
-            <Route
-              path="/login"
-              element={
-                <LoginPage
-                  isLoggedIn={state.isLoggedIn}
-                  username={state.username}
-                  password={state.password}
-                  updateState={updateState}
-                  onFormSubmit={handleAuthForm}
-                  onLogout={logout}
-                ></LoginPage>
-              }
-            ></Route>
-            <Route
-              path="/problems"
-              element={
-                <Problems
-                  onFetch={fetchProblems}
-                  problems={problems}
-                ></Problems>
-              }
-            ></Route>
-            {/* <Route
-              path="/problem/:pno"
-              element={
-                <Problem problems={problems} onFetch={fetchProblems}></Problem>
-              }
-            ></Route> */}
-            <Route
-              path="/submissions"
-              element={<Submissons></Submissons>}
-            ></Route>
-          </Routes>
-        </BrowserRouter>
-      </div>
+      <RouterProvider router={routes}></RouterProvider>
     </>
   );
 };
