@@ -139,33 +139,19 @@ const App = () => {
         },
         {
           path: "problems",
-          element: (
-            <Problems onFetch={fetchProblems} problems={problems}></Problems>
-          ),
+          loader: async () => {
+            const p = await api.get("/problems");
+            return p.data;
+          },
+          element: <Problems></Problems>,
         },
         {
           path: "/problem/:pno",
           loader: async ({ params }) => {
-            console.log("problems", problems);
-            if (problems.length != 0) {
-              console.log(parseInt(params.pno));
-              if (parseInt(params.pno) < problems.length) {
-                console.log(problems[parseInt(params.pno)]);
-                return problems[parseInt(params.pno)];
-              } else {
-                return { error: "code 1" };
-              }
-            } else {
-              const p = await fetchProblems();
-              console.log("p loader", p);
-              if (parseInt(params.pno) < p.length) {
-                return p[parseInt(params.pno)];
-              } else {
-                return { error: "code 2" };
-              }
-            }
+            const p = await api.get(`/problem/${params.pno}`);
+            return p.data;
           },
-          element: <Problem problem={() => {}}></Problem>,
+          element: <Problem></Problem>,
         },
         {
           path: "submissions",

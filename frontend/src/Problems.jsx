@@ -1,10 +1,9 @@
 import { useEffect } from "react";
 import ProblemCard from "./ProblemCard";
+import { useLoaderData } from "react-router-dom";
 
-const Problems = ({ onFetch, problems }) => {
-  useEffect(() => {
-    onFetch();
-  }, []);
+const Problems = () => {
+  let problems = useLoaderData();
   return (
     <>
       <div className="flex-grow py-24">
@@ -14,7 +13,7 @@ const Problems = ({ onFetch, problems }) => {
               <ProblemCard
                 key={problem._id}
                 pname={problem.pname}
-                index={i}
+                index={problem.pno}
               ></ProblemCard>
             ))}
         </div>
