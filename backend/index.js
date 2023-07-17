@@ -273,6 +273,18 @@ app.route("/problem/:pno").get((req, res) => {
   });
 });
 
+app.route("/problem/submit").post(
+  (req, res, next) => {
+    if (req.isAuthenticated()) {
+      return next();
+    }
+    return res.json({ error: "Need to be logged in to submit the code" });
+  },
+  (req, res) => {
+    res.send("AUTHENTICATED");
+  }
+);
+
 app.listen(PORT, () => {
   console.log(`http://localhost:${PORT}`);
 });

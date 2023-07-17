@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLoaderData } from "react-router-dom";
+import axios from "axios";
 
 const Problem = () => {
   let problem = useLoaderData();
@@ -7,6 +8,25 @@ const Problem = () => {
   let [code, setCode] = useState("");
   let [lang, setLang] = useState("cpp");
   let [output, setOutput] = useState("");
+
+  const api = axios.create({
+    baseURL: "http://localhost:3000",
+    withCredentials: true,
+  });
+
+  const handleSubmit = async () => {
+    console.log(lang, code);
+    if (!code) {
+      return setOutput("Code empty");
+    }
+    api.post("/problem/submit", { lang: lang, code: code }).then((res) => {
+      console.log("api res", res);
+      if (res.data.error) {
+        setOutput(res.data.error);
+      } else {
+      }
+    });
+  };
 
   return (
     <>
@@ -37,7 +57,7 @@ const Problem = () => {
                 className="flex flex-col gap-6"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  console.log(lang, code);
+                  handleSubmit();
                 }}
               >
                 <label htmlFor="language" className="flex gap-2">
@@ -61,8 +81,8 @@ const Problem = () => {
                   name="code"
                   id="cod3"
                   rows="10"
-                    className="border border-black bg-slate-300 p-1"
-                    placeholder="Code here"
+                  className="border border-black bg-slate-300 p-1"
+                  placeholder="Code here"
                   onChange={(e) => {
                     setCode(e.target.value);
                   }}
