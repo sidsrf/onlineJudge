@@ -8,6 +8,10 @@ const MongoStore = require("connect-mongo");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const cors = require("cors");
+const { v4: uuid } = require("uuid");
+const fs = require("fs");
+const path = require("path");
+const { exec } = require("child_process");
 
 const { PORT, MONGO_URI, SECRET } = process.env;
 const p = require("./defaultProblems");
@@ -107,12 +111,12 @@ problemSchema.pre("save", function (next) {
 
 const Problem = model("Problem", problemSchema);
 
-p.forEach(async (problem) => {
+/* p.forEach(async (problem) => {
   const prob = await Problem.findOne(problem);
   if (!prob) {
     new Problem(problem).save();
   }
-});
+}); */
 
 passport.serializeUser((user, done) => {
   console.log(`Serialising user with username: ${user.username}`);
@@ -180,6 +184,57 @@ app.use(
 );
 app.use(passport.initialize());
 app.use(passport.session());
+
+const genFile = async (folder, ext, content) => {
+  const fullname = `${uuid()}.${ext}`;
+  const filePath = path.join(folder, fullname);
+  await fs.writeFileSync(filePath, content);
+  return filePath;
+};
+
+const compileFile = async (folder, file) => {
+  const [fname, ext] = path.basename(file).split(".");
+  const outputPath = path.join(folder, fname);
+
+  const commands = {
+    cpp: `g++ ${file} -o ${outputPath}`,
+  };
+
+  return new Promise((resolve, reject) => {
+    exec(commands[ext], (error, stdout, stderr) => {
+      if (error) {
+        reject({ error, stderr });
+      }
+      if (stderr) {
+        reject(stderr);
+      }
+      resolve(outputPath);
+    });
+  });
+};
+
+const runFile = async (file, inFile) => {
+  const [fname, ext] = path.basename(file).split('.')
+
+  const commands = {
+    py: `python ${file} < ${inFile}`
+  }
+  const command = () => {
+    if (!ext) {
+      return `${file} < ${inFile}`
+    }
+    return commands[ext]
+  }
+
+  return new Promise((resolve, reject) => {
+    exec(command(), (error, stdout, stderr) => {
+      if (error || stderr) {
+        reject({ error, stderr });
+      }
+      resolve(stdout);
+    });
+  });
+};
 
 app.route("/auth").post((req, res) => {
   if (req.isAuthenticated()) {
@@ -280,8 +335,43 @@ app.route("/problem/submit").post(
     }
     return res.json({ error: "Need to be logged in to submit the code" });
   },
-  (req, res) => {
-    res.send("AUTHENTICATED");
+  async (req, res) => {
+    const { lang, code, pno } = req.body;
+    if (!code) {
+      return res.json({ error: "Empty code" });
+    }
+    const base = path.join(__dirname, "submissions");
+    const tcbase = path.join(__dirname, 'testcases',`${pno}`)
+    if (!fs.existsSync(base)) {
+      fs.mkdirSync(base, { recursive: true });
+    }
+    // create the file on fs first
+    const f = await genFile(base, lang, code);
+    console.log("f", f);
+    // compile the file
+    let compiledFile = null;
+    if (lang == 'py') {
+      compiledFile = f;
+    } else {
+      compiledFile = await compileFile(base, f);
+    }
+    // run the file against test cases
+    for (let file of fs.readdirSync(path.join(tcbase, "in"))) {
+      let val = await runFile(compiledFile, path.join(tcbase, 'in', file)).catch((err) => {
+        console.log('error while running file', err)
+      });
+      let exp = fs.readFileSync(path.join(tcbase, "out", path.basename(file)))
+      // console.log(`TC${file} -> ${val} ${exp}`)
+      if (val.trim() == exp) {
+        console.log(`test case ${file} passed`)
+      } else {
+        console.log(`WRONG ANSWER on testcase ${file}`)
+        return res.send({
+          error: `WRONG ANSWER on testcase ${file}`
+        })
+      }
+    }
+    return res.send("ACCEPTED")
   }
 );
 

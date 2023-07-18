@@ -15,17 +15,20 @@ const Problem = () => {
   });
 
   const handleSubmit = async () => {
-    console.log(lang, code);
+    // console.log(lang, code);
     if (!code) {
       return setOutput("Code empty");
     }
-    api.post("/problem/submit", { lang: lang, code: code }).then((res) => {
-      console.log("api res", res);
-      if (res.data.error) {
-        setOutput(res.data.error);
-      } else {
-      }
-    });
+    api
+      .post("/problem/submit", { lang: lang, code: code, pno: problem.pno })
+      .then((res) => {
+        console.log("api res", res);
+        if (res.data.error) {
+          setOutput(res.data.error);
+        } else {
+          setOutput(res.data);
+        }
+      });
   };
 
   return (
@@ -70,10 +73,13 @@ const Problem = () => {
                       setLang((pre) => {
                         return e.target.value;
                       });
+                      setOutput("");
                     }}
                   >
                     <option value="cpp">C++</option>
-                    <option value="java">Java</option>
+                    <option value="java" disabled>
+                      Java
+                    </option>
                     <option value="py">Python</option>
                   </select>
                 </label>

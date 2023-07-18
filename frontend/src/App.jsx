@@ -14,8 +14,6 @@ const App = () => {
     password: null,
   });
 
-  let [problems, setProblems] = useState([]);
-
   useEffect(() => {
     console.log("app useeffect");
     getUser();
