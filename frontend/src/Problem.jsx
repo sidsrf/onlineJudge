@@ -26,7 +26,7 @@ const Problem = () => {
         if (res.data.error) {
           setOutput(res.data.error);
         } else {
-          setOutput(res.data);
+          setOutput(res.data.verdict);
         }
       });
   };
