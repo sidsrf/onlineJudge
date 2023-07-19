@@ -59,10 +59,13 @@ const LoginPage = ({
                 <option value="login">LOGIN</option>
                 <option value="signup">SIGNUP</option>
               </select>
-              <label htmlFor="username">
+              <label htmlFor="username" className=" gap-2">
+                <span>Username: </span>
                 <input
                   type="text"
-                  placeholder="username"
+                  placeholder={
+                    formAction == "login" ? "username" : "atleast 6 chars"
+                  }
                   name="username"
                   id="username"
                   className="p-2"
@@ -70,10 +73,11 @@ const LoginPage = ({
                   required
                 />
               </label>
-              <label htmlFor="password">
+              <label htmlFor="password" className="gap-2">
+                <span>Password: </span>
                 <input
                   type="password"
-                  placeholder="password"
+                  placeholder={formAction == 'login'? 'password': 'atleast 6 chars'}
                   name="password"
                   id="password"
                   onChange={handleChange}

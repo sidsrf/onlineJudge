@@ -2,169 +2,18 @@ require("dotenv").config();
 
 const express = require("express");
 const session = require("express-session");
-const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
 const MongoStore = require("connect-mongo");
-const passport = require("passport");
-const LocalStrategy = require("passport-local").Strategy;
 const cors = require("cors");
 const { v4: uuid } = require("uuid");
 const fs = require("fs");
 const path = require("path");
 const { exec } = require("child_process");
 
+const { User, Problem, Counter } = require('./db')
+const authRoutes = require('./auth')
+const passport = require('./passport')
 const { PORT, MONGO_URI, SECRET } = process.env;
-const p = require("./defaultProblems");
 const app = express();
-
-const Schema = mongoose.Schema,
-  model = mongoose.model;
-
-mongoose
-  .connect(MONGO_URI, {})
-  .then(() => {
-    console.log("DB Connected");
-  })
-  .catch((err) => {
-    console.log("Not connected to DB");
-  });
-
-const counterSchema = new Schema({
-  fieldName: {
-    type: String,
-  },
-  count: {
-    type: Number,
-    default: 0,
-  },
-});
-
-const Counter = model("Counter", counterSchema);
-
-Counter.findOne({ fieldName: "problems" }).then((counter) => {
-  if (!counter) {
-    new Counter({ fieldName: "problems" }).save();
-  }
-});
-
-const userSchema = new Schema({
-  username: {
-    type: String,
-    unique: true,
-    required: [true, "no username in document"],
-  },
-  password: {
-    type: String,
-    required: [true, "no password in document"],
-  },
-});
-
-userSchema.methods = {
-  verifyPassword: function (password) {
-    return bcrypt.compareSync(password, this.password);
-  },
-  hashPassword: function (password) {
-    return bcrypt.hashSync(password, 10);
-  },
-};
-
-userSchema.pre("save", function (next) {
-  if (!this.password) {
-    return console.log("password not provided");
-  }
-  this.password = this.hashPassword(this.password);
-  next();
-});
-
-const User = model("User", userSchema);
-
-const problemSchema = new Schema({
-  pno: {
-    type: Number,
-  },
-  pname: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  description: {
-    type: String,
-    required: true,
-  },
-  sampleinput: {
-    type: String,
-  },
-  sampleoutput: {
-    type: String,
-  },
-});
-
-problemSchema.pre("save", function (next) {
-  Counter.findOneAndUpdate(
-    { fieldName: "problems" },
-    { $inc: { count: 1 } }
-  ).then((counter) => {
-    this.pno = counter.count;
-    next();
-  });
-});
-
-const Problem = model("Problem", problemSchema);
-
-/* p.forEach(async (problem) => {
-  const prob = await Problem.findOne(problem);
-  if (!prob) {
-    new Problem(problem).save();
-  }
-}); */
-
-passport.serializeUser((user, done) => {
-  console.log(`Serialising user with username: ${user.username}`);
-  done(null, { _id: user._id });
-});
-
-passport.deserializeUser((id, done) => {
-  User.findById(id)
-    .then((user) => {
-      console.log(`Deserialising user with username: ${user.username}`);
-      done(null, user);
-    })
-    .catch((err) => {
-      console.log("Error while deserialising");
-    });
-});
-
-passport.use(
-  new LocalStrategy((username, password, done) => {
-    User.findOne({ username: username })
-      .then((user) => {
-        if (!user) {
-          return done(null, false, { message: "username not found" });
-        }
-        if (!user.verifyPassword(password)) {
-          return done(null, false, { message: "incorrect password" });
-        }
-        return done(null, user);
-      })
-      .catch((err) => {
-        done(true, false, { message: "authentication error" });
-      });
-  })
-);
-
-const login = (req, res) => {
-  passport.authenticate("local", (err, user, info) => {
-    if (!user) {
-      return res.send(info);
-    }
-    req.login(user, (loginErr) => {
-      if (loginErr) {
-        return res.send({ error: "Login error" });
-      }
-      return res.send({ _id: req.user._id, username: req.user.username });
-    });
-  })(req, res);
-};
 
 app.use(
   cors({
@@ -236,76 +85,7 @@ const runFile = async (file, inFile) => {
   });
 };
 
-app.route("/auth").post((req, res) => {
-  if (req.isAuthenticated()) {
-    return res.send({
-      _id: req.user._id,
-      username: req.user.username,
-    });
-  }
-  res.json({ username: null });
-});
-
-app.route("/auth/login").post((req, res, next) => {
-  if (req.isAuthenticated()) {
-    return res.send({ message: "an account is already logged in" });
-  }
-  if (!req.body.username || !req.body.password) {
-    return res.send({ message: "both username and password are required" });
-  }
-  next();
-}, login);
-
-app.route("/auth/signup").post(
-  (req, res, next) => {
-    if (req.isAuthenticated()) {
-      return res.send({ error: "cannot signup while logged in" });
-    }
-    next();
-  },
-  (req, res, next) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.send({ message: "both username and password are required" });
-    }
-    User.findOne({ username: username })
-      .then((user) => {
-        if (user) {
-          return res.send({ message: "username already registered" });
-        }
-        next();
-      })
-      .catch((err) => {
-        res.send({ error: "Error while checking username availability" });
-      });
-  },
-  (req, res, next) => {
-    const { username, password } = req.body;
-    new User({ username: username, password: password })
-      .save()
-      .then((user) => {
-        console.log(`Registration successful for username: ${user.username}`);
-        next();
-      })
-      .catch((err) => {
-        res.send({ error: "Error while registering" });
-      });
-  },
-  login
-);
-
-app.route("/auth/logout").post((req, res) => {
-  if (req.isAuthenticated()) {
-    req.logout((err) => {
-      if (err) {
-        return res.send({ error: "Logout error" });
-      }
-      return res.send({ message: "Logout successful" });
-    });
-  } else {
-    res.send({ message: "no user to log out" });
-  }
-});
+app.use('/auth', authRoutes)
 
 app.route("/problems").get((req, res) => {
   console.log("fetching problems");
@@ -341,7 +121,7 @@ app.route("/problem/submit").post(
       return res.json({ error: "Empty code" });
     }
     const base = path.join(__dirname, "submissions");
-    const tcbase = path.join(__dirname, 'testcases',`${pno}`)
+    const tcbase = path.join(__dirname, 'testcases', `${pno}`)
     if (!fs.existsSync(base)) {
       fs.mkdirSync(base, { recursive: true });
     }
