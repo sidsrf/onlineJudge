@@ -5,7 +5,7 @@ const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const cors = require("cors");
 
-const { User, Problem, Counter } = require('./db')
+const { Problem } = require('./db')
 const authRoutes = require('./auth')
 const passport = require('./passport')
 const { PORT, MONGO_URI, SECRET } = process.env;
@@ -38,7 +38,7 @@ app.use(passport.session());
 
 app.use('/auth', authRoutes)
 
-app.route("/problems").get((req, res) => {
+app.route("/problem/all").get((req, res) => {
   console.log("fetching problems");
   Problem.find({}, "_id pname pno")
     .then((problems) => {

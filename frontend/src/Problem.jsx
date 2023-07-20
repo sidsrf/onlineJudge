@@ -1,39 +1,94 @@
-import { useState } from "react";
-import { useLoaderData } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import axios from "axios";
+import Editor from "@monaco-editor/react";
 
-const Problem = () => {
-  let problem = useLoaderData();
+const Problem = ({ isLoggedIn }) => {
+  let [problem, setProblem] = useState({});
+  let { pno } = useParams();
 
-  let [code, setCode] = useState("");
   let [lang, setLang] = useState("cpp");
   let [output, setOutput] = useState("");
 
+  const editorRef = useRef(null);
+
+  const editorDidMount = (editor, monaco) => {
+    editorRef.current = editor;
+  };
+
+  const getCode = () => {
+    return editorRef.current?.getValue();
+  };
   const api = axios.create({
     baseURL: "http://localhost:3000",
     withCredentials: true,
   });
 
   const handleSubmit = async () => {
-    // console.log(lang, code);
-    if (!code) {
+    if (!getCode()) {
       return setOutput("Code empty");
     }
+    if (!isLoggedIn) {
+      return setOutput("Need to be logged in to submit the code");
+    }
     api
-      .post("/problem/submit", { lang: lang, code: code, pno: problem.pno })
-      .then((res) => {
-        console.log("api res", res);
-        if (res.data.error) {
-          setOutput(res.data.error);
-        } else {
-          setOutput(res.data.verdict);
+      .post("/problem/submit", {
+        lang: lang,
+        code: getCode(),
+        pno: problem.pno,
+      })
+      .then(
+        (res) => {
+          console.log("api res", res);
+          if (res.data.error) {
+            setOutput(res.data.error);
+          } else {
+            setOutput(res.data.verdict);
+          }
+        },
+        (reason) => {
+          console.log("reason", reason);
+          if (reason.name == "AxiosError") {
+            setOutput("Code not sumitted, please try again later");
+          }
         }
+      )
+      .catch((err) => {
+        console.log("err", err);
       });
   };
 
+  const getProblem = async (pno) => {
+    return await api
+      .get(`/problem/${pno}`)
+      .then(
+        (res) => {
+          if (!res.data.error) {
+            return res.data;
+          }
+          return { error: "Cannot fetch" };
+        },
+        (reason) => {
+          return { err: "cannot fetch" };
+        }
+      )
+      .catch((err) => {
+        return { err: "cannot fetch" };
+      });
+  };
+
+  useEffect(() => {
+    getProblem(pno).then((res) => {
+      setProblem(res);
+    });
+    document.title = `mOJ | P-${pno}`;
+  }, []);
+
   return (
     <>
-      {problem.error ? (
+      {problem.err ? (
+        "Error while loading problem"
+      ) : problem.error ? (
         "no such problem"
       ) : (
         <div className="flex-grow p-5">
@@ -73,7 +128,6 @@ const Problem = () => {
                       setLang((pre) => {
                         return e.target.value;
                       });
-                      setOutput("");
                     }}
                   >
                     <option value="cpp">C++</option>
@@ -83,22 +137,21 @@ const Problem = () => {
                     <option value="py">Python</option>
                   </select>
                 </label>
-                <textarea
-                  name="code"
-                  id="cod3"
-                  rows="10"
-                  className="border border-black bg-slate-300 p-1"
-                  placeholder="Code here"
-                  onChange={(e) => {
-                    setCode(e.target.value);
-                  }}
-                ></textarea>
+                <Editor
+                  className="border border-black"
+                  onMount={editorDidMount}
+                  defaultLanguage="cpp"
+                  language={lang == "cpp" ? "cpp" : "python"}
+                  height="50vh"
+                ></Editor>
                 <span className="flex justify-center gap-2">
                   {/* <button disabled>RUN</button> */}
                   <input type="submit" value="SUBMIT" />
                 </span>
               </form>
-              <div className="border flex-grow border-black">{output}</div>
+              <div className="border flex-grow border-black h-11 p-2">
+                {output}
+              </div>
             </div>
           </div>
         </div>

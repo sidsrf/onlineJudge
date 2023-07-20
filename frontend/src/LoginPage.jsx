@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 const LoginPage = ({
   isLoggedIn,
   updateState,
@@ -12,6 +12,10 @@ const LoginPage = ({
   };
   let [formAction, setFormAction] = useState("login");
   let [message, setMessage] = useState("");
+
+  useEffect(() => {
+    document.title = `MOJ | ${isLoggedIn ? "Logout" : formAction}`;
+  }, [formAction]);
 
   return (
     <>
@@ -71,18 +75,22 @@ const LoginPage = ({
                   className="p-2"
                   onChange={handleChange}
                   required
+                  minLength="6"
                 />
               </label>
               <label htmlFor="password" className="gap-2">
                 <span>Password: </span>
                 <input
                   type="password"
-                  placeholder={formAction == 'login'? 'password': 'atleast 6 chars'}
+                  placeholder={
+                    formAction == "login" ? "password" : "atleast 6 chars"
+                  }
                   name="password"
                   id="password"
                   onChange={handleChange}
                   className="p-2"
                   required
+                  minLength="6"
                 />
               </label>
               <input

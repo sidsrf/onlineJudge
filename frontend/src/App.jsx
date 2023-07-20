@@ -1,23 +1,18 @@
 import { useState, useEffect } from "react";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import axios from "axios";
 import Root from "./Root";
 import Home from "./Home";
 import LoginPage from "./LoginPage";
 import Problems from "./Problems";
 import Submissons from "./Submissions";
 import Problem from "./Problem";
-import axios from "axios";
 const App = () => {
   let [state, setState] = useState({
     isLoggedIn: false,
     username: null,
     password: null,
   });
-
-  useEffect(() => {
-    console.log("app useeffect");
-    getUser();
-  }, []);
 
   const updateState = (key, value) => {
     setState((pre) => {
@@ -33,39 +28,34 @@ const App = () => {
     withCredentials: true,
   });
 
-  const fetchProblems = async () => {
-    console.log("fetchproblems functoin");
-
-    const p = await api.get("/problems");
-    console.log("fetchp p", p);
-
-    if (p.data.error) {
-      return [];
-    } else {
-      setProblems((pre) => {
-        return p.data;
-      });
-      return p.data;
-    }
-  };
   const getUser = () => {
-    api.post("/auth").then((res) => {
-      if (res.data.username != null) {
-        setState({
-          isLoggedIn: true,
-          username: res.data.username,
-        });
-      } else {
-        setState({
-          isLoggedIn: false,
-          username: null,
-        });
-      }
-    });
+    api
+      .post("/auth")
+      .then(
+        (res) => {
+          if (res.data.username != null) {
+            setState({
+              isLoggedIn: true,
+              username: res.data.username,
+            });
+          } else {
+            setState({
+              isLoggedIn: false,
+              username: null,
+            });
+          }
+        },
+        (reason) => {
+          console.log("get user rejected", reason);
+        }
+      )
+      .catch((err) => {
+        console.log("getuser catch", err);
+      });
   };
 
-  const logout = () => {
-    return api
+  const logout = async () => {
+    return await api
       .post("/auth/logout")
       .then((res) => {
         if (res.data.message == "Logout successful") {
@@ -98,9 +88,13 @@ const App = () => {
         return data.message || data.error;
       })
       .catch((err) => {
-        return "interal error";
+        return "internal error";
       });
   };
+
+  useEffect(() => {
+    getUser();
+  }, []);
 
   const routes = createBrowserRouter([
     {
@@ -110,16 +104,14 @@ const App = () => {
           isLoggedIn={state.isLoggedIn}
           onLogout={logout}
           username={state.username}
-        ></Root>
+        />
       ),
+      errorElement: <>Page not found</>,
       children: [
         {
           path: "",
           element: (
-            <Home
-              username={state.username}
-              isLoggedIn={state.isLoggedIn}
-            ></Home>
+            <Home username={state.username} isLoggedIn={state.isLoggedIn} />
           ),
         },
         {
@@ -132,28 +124,20 @@ const App = () => {
               updateState={updateState}
               onFormSubmit={handleAuthForm}
               onLogout={logout}
-            ></LoginPage>
+            />
           ),
         },
         {
-          path: "problems",
-          loader: async () => {
-            const p = await api.get("/problems");
-            return p.data;
-          },
-          element: <Problems></Problems>,
+          path: "problem/all",
+          element: <Problems />,
         },
         {
-          path: "/problem/:pno",
-          loader: async ({ params }) => {
-            const p = await api.get(`/problem/${params.pno}`);
-            return p.data;
-          },
-          element: <Problem></Problem>,
+          path: "problem/:pno",
+          element: <Problem isLoggedIn={state.isLoggedIn} />,
         },
         {
           path: "submissions",
-          element: <Submissons></Submissons>,
+          element: <Submissons />,
         },
       ],
     },
@@ -161,7 +145,7 @@ const App = () => {
 
   return (
     <>
-      <RouterProvider router={routes}></RouterProvider>
+      <RouterProvider router={routes} />
     </>
   );
 };

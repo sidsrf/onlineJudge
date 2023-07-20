@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-const Navbar = ({ isLoggedIn, username, onLogout }) => {
+const Navbar = ({ isLoggedIn, username }) => {
   return (
     <>
       <div className="flex w-full bg-red-400 justify-between px-5 py-2">
@@ -10,7 +10,7 @@ const Navbar = ({ isLoggedIn, username, onLogout }) => {
             <Link to="/">HOME</Link>
           </li>
           <li>
-            <Link to="/problems">PROBLEMS</Link>
+            <Link to="/problem/all">PROBLEMS</Link>
           </li>
           <li>
             <Link to="/submissions">SUBMISSIONS</Link>

@@ -56,7 +56,7 @@ app.route('/run').post((req, res) => {
     console.log(req.body);
     const commands = {
         cpp: ``,
-        py: `python3`
+        py: `python`
     }
     let child;
     if (commands[ext]) {
@@ -78,7 +78,7 @@ app.route('/run').post((req, res) => {
 
     child.stderr.on('data', (data) => {
         returnobj = { error: 'Runtime error' }
-
+        console.log('runtime error',data.toString())
     })
     child.on('error', (err) => {
         console.log('child error', err)
