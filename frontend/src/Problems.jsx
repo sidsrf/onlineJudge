@@ -5,7 +5,7 @@ import axios from "axios";
 const Problems = () => {
   let [problems, setProblems] = useState([]);
   const api = axios.create({
-    baseURL: "http://localhost:3000",
+    baseURL: import.meta.env.VITE_BACKEND_URL,
     withCredentials: true,
   });
 

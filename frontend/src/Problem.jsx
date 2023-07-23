@@ -9,6 +9,7 @@ const Problem = ({ isLoggedIn }) => {
 
   let [lang, setLang] = useState("cpp");
   let [output, setOutput] = useState("");
+  let [cinput, setCinput] = useState("");
 
   const editorRef = useRef(null);
 
@@ -20,7 +21,7 @@ const Problem = ({ isLoggedIn }) => {
     return editorRef.current?.getValue();
   };
   const api = axios.create({
-    baseURL: "http://localhost:3000",
+    baseURL: import.meta.env.VITE_BACKEND_URL,
     withCredentials: true,
   });
 
@@ -39,7 +40,8 @@ const Problem = ({ isLoggedIn }) => {
       })
       .then(
         (res) => {
-          console.log("api res", res);
+          // console.log("api res", res);
+          console.log(res);
           if (res.data.error) {
             setOutput(res.data.error);
           } else {
@@ -48,13 +50,13 @@ const Problem = ({ isLoggedIn }) => {
         },
         (reason) => {
           console.log("reason", reason);
-          if (reason.name == "AxiosError") {
-            setOutput("Code not sumitted, please try again later");
-          }
+          // if (reason.name == "AxiosError") {
+          setOutput("Code not sumitted, please try again later");
+          // }
         }
       )
       .catch((err) => {
-        console.log("err", err);
+        // console.log("err", err);
       });
   };
 
@@ -111,7 +113,7 @@ const Problem = ({ isLoggedIn }) => {
               </div>
             </div>
             <div className="flex flex-col gap-2">
-              <form
+              <div
                 className="flex flex-col gap-6"
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -144,13 +146,58 @@ const Problem = ({ isLoggedIn }) => {
                   language={lang == "cpp" ? "cpp" : "python"}
                   height="50vh"
                 ></Editor>
-                <span className="flex justify-center gap-2">
-                  {/* <button disabled>RUN</button> */}
-                  <input type="submit" value="SUBMIT" />
+                <textarea
+                  name="cinput"
+                  id="cinput"
+                  cols="30"
+                  placeholder="custom input"
+                  className="p-1"
+                  onChange={(e) => {
+                    setCinput(e.target.value);
+                  }}
+                ></textarea>
+                <span className="flex justify-center gap-5">
+                  <button
+                    onClick={() => {
+                      console.log(lang, getCode(), cinput);
+                      if (!getCode()) {
+                        setOutput("Code empty");
+                      } else {
+                        api
+                          .post("/problem/run", {
+                            lang: lang,
+                            code: getCode(),
+                            cinput: cinput,
+                          })
+                          .then(
+                            (res) => {
+                              console.log(res.data.output);
+                              if (res.data.error) {
+                                setOutput(res.data.error);
+                              } else {
+                                setOutput(res.data.output);
+                              }
+                            },
+                            (r) => {
+                              setOutput("compiler down, try again later");
+                            }
+                          );
+                      }
+                    }}
+                  >
+                    RUN
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleSubmit();
+                    }}
+                  >
+                    SUBMIT
+                  </button>
                 </span>
-              </form>
-              <div className="border flex-grow border-black h-11 p-2">
-                {output}
+              </div>
+              <div className="border flex-grow border-black h-full p-2">
+                <pre>{output}</pre>
               </div>
             </div>
           </div>

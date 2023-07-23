@@ -5,17 +5,12 @@ const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const cors = require("cors");
 
-const { Problem } = require('./db')
-const authRoutes = require('./auth')
-const passport = require('./passport')
+const { Submission } = require("./db");
+const passport = require("./passport");
+const authRoutes = require("./auth");
 const { PORT, MONGO_URI, SECRET } = process.env;
-const testcases = require('./testcases')
-const axios = require("axios")
+const problemRoutes = require("./problem");
 const app = express();
-
-const ocapi = axios.create({
-  baseURL: 'http://localhost:3001'
-})
 
 app.use(
   cors({
@@ -36,57 +31,31 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use('/auth', authRoutes)
+app.use("/auth", authRoutes);
+app.use("/problem", problemRoutes);
 
-app.route("/problem/all").get((req, res) => {
-  console.log("fetching problems");
-  Problem.find({}, "_id pname pno")
-    .then((problems) => {
-      res.send(problems);
+app.route("/submissions/all").get((req, res) => {
+  Submission.find({}, "_id username pno lang code verdict time")
+    .then((submissions) => {
+      res.send(submissions);
     })
     .catch((err) => {
       res.json({ error: "Some error occured" });
     });
 });
 
-app.route("/problem/:pno").get((req, res) => {
-  console.log("fetching problem", req.params["pno"]);
-  Problem.findOne({ pno: parseInt(req.params["pno"]) }).then((doc) => {
-    if (!doc) {
-      return res.send({ error: "The problem does not exist" });
-    }
-    return res.send(doc);
-  });
+app.route("/submissions/:username").get((req, res) => {
+  Submission.find(
+    { username: req.params.username },
+    "_id username pno lang code verdict time"
+  )
+    .then((submissions) => {
+      res.send(submissions);
+    })
+    .catch((err) => {
+      res.send({ error: "Some error occured" });
+    });
 });
-
-app.route("/problem/submit").post(
-  (req, res, next) => {
-    if (!req.isAuthenticated()) {
-      return res.json({ error: "Need to be logged in to submit the code" });
-    }
-    next();
-  },
-  async (req, res) => {
-    const { lang, code, pno } = req.body;
-    const cFile = await ocapi.post('/compile', { code: code, ext: lang })
-    if (cFile.data.error) {
-      return res.send({ error: cFile.data.error })
-    }
-    const newF = cFile.data.file;
-
-    const tcs = testcases[pno];
-    for (var i = 0; i < tcs['inputs'].length; i++) {
-      const output = await ocapi.post('/run', { cfilePath: newF, inpStr: tcs['inputs'][i], ext: lang })
-      if (output.data.error) {
-        return res.send({ error: output.data.error })
-      }
-      if (output.data.output != tcs['outputs'][i]) {
-        return res.send({ verdict: `Wrong answer in testcase ${i}` })
-      }
-    }
-    return res.send({ verdict: "ACCEPTED" })
-  }
-);
 
 app.listen(PORT, () => {
   console.log(`http://localhost:${PORT}`);

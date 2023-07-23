@@ -90,7 +90,34 @@ problemSchema.pre("save", function (next) {
 
 const Problem = model("Problem", problemSchema);
 
+const subSchema = new Schema({
+    username: {
+        type: String,
+        required: true,
+    },
+    pno: {
+        type: Number,
+        required: true,
+    },
+    lang: {
+        type: String,
+        required: true,
+    },
+    code: {
+        type: String,
+        required: true,
+    },
+    verdict: {
+        type: String,
+        required: true,
+    },
+    time: Date
+})
+
+const Submission = model('Submission', subSchema);
+
+
 
 module.exports = {
-    mongoose: mongoose, User: User, Problem: Problem, Counter: Counter
+    mongoose: mongoose, User: User, Problem: Problem, Counter: Counter, Submission: Submission
 }
