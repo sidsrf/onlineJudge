@@ -11,10 +11,12 @@ const authRoutes = require("./auth");
 const { PORT, MONGO_URI, SECRET } = process.env;
 const problemRoutes = require("./problem");
 const app = express();
-
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS.split(",") || "";
 app.use(
   cors({
-    origin: /localhost.*/, // for development only
+    origin: (origin, cb) => {
+      ALLOWED_ORIGINS.includes(origin) ? cb(null, true) : cb(null, false);
+    },
     credentials: true,
   })
 );
