@@ -4,7 +4,7 @@ const express = require("express");
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const cors = require("cors");
-const cookieParser = require("cookie-parse");
+const cookieParser = require("cookie-parser");
 
 const { Submission } = require("./db");
 const passport = require("./passport");
