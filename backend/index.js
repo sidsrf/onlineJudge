@@ -4,7 +4,7 @@ const express = require("express");
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const cors = require("cors");
-const cookieParser = require("cookie-parser");
+// const cookieParser = require("cookie-parser");
 
 const { Submission } = require("./db");
 const passport = require("./passport");
@@ -21,7 +21,7 @@ app.use(
     credentials: true,
   })
 );
-app.use(cookieParser());
+// app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
