@@ -4,6 +4,7 @@ const express = require("express");
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const cors = require("cors");
+const cookieParser = require("cookie-parse");
 
 const { Submission } = require("./db");
 const passport = require("./passport");
@@ -20,6 +21,7 @@ app.use(
     credentials: true,
   })
 );
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
@@ -28,6 +30,10 @@ app.use(
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({ mongoUrl: MONGO_URI }),
+    cookie: {
+      sameSite: "none",
+      secure: true,
+    },
   })
 );
 app.use(passport.initialize());
