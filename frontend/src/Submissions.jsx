@@ -1,21 +1,23 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { format } from "date-fns";
 import Modal from "./Modal";
+import authConext from "./AuthContext";
+const Submissons = () => {
+  const { isAuthenticated, user } = useContext(authConext);
 
-const Submissons = ({ isLoggedIn, username }) => {
   const [sub, setSub] = useState([]);
   const [show, setShow] = useState(false);
   const [code, setCode] = useState("");
   const api = axios.create({
-    baseURL: import.meta.env.VITE_BACKEND_URL,
-    withCredentials: true,
+    baseURL: import.meta.env.VITE_BACKEND_URL + "/submissions",
+    // withCredentials: true,
   });
   useEffect(() => {
     document.title = "mOJ | Submissions";
-    api.get("/submissions/all").then(
+    api.get("/all").then(
       (res) => {
-        console.log("res", res);
+        // console.log("res", res);
         if (res.data.error) {
           setSub({ error: "DB error" });
         } else {
@@ -23,7 +25,7 @@ const Submissons = ({ isLoggedIn, username }) => {
         }
       },
       (reason) => {
-        console.log("reason", reason);
+        // console.log("reason", reason);
         setSub({ error: "API Error" });
       }
     );
@@ -57,10 +59,10 @@ const Submissons = ({ isLoggedIn, username }) => {
                     <td>
                       <button
                         onClick={() => {
-                          if (!isLoggedIn) {
+                          if (!isAuthenticated) {
                             alert("please log in to view submission");
                           } else {
-                            if (username != s.username) {
+                            if (user != s.username) {
                               alert("You can view only your submissions");
                             } else {
                               setCode(s.code);

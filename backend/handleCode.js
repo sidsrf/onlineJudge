@@ -1,18 +1,31 @@
-require("dotenv").config();
-const express = require("express");
-const fs = require("fs");
-const { v4: uuid } = require("uuid");
-const path = require("path");
-const cp = require("child_process");
-const cors = require("cors");
-// const testcases = require("./testcases");
-const app = express();
+// import dotenv from "dotenv";
+// dotenv.config();
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors());
-const base = path.join(__dirname, "submissions");
-const cbase = path.join(__dirname, "compiled");
+import fs from "fs";
+import { v4 as uuid } from "uuid";
+import path from "path";
+import cp from "child_process";
+import { Testcase } from "./Modals.js";
+import connectDB from "./db.js";
+
+let testcases = [];
+
+connectDB().then(() => {
+  Testcase.find({})
+    .sort({ pno: "asc" })
+    .then(
+      (doc) => {
+        testcases = doc;
+      },
+      (reason) => {
+        console.log("Unable to load testcases");
+        console.log(reason);
+      }
+    );
+});
+
+const base = path.join(process.cwd(), "submissions");
+const cbase = path.join(process.cwd(), "compiled");
 
 if (!fs.existsSync(base)) {
   fs.mkdirSync(base);
@@ -33,7 +46,7 @@ const runCode = (cFilePath, ext, inpStr) => {
       input: inpStr,
       timeout: { cpp: 2000, py: 5000 }[ext],
     });
-    console.log("runspawn result", result);
+    // console.log("runspawn result", result);
     if (result.status === null) {
       console.log("TLE");
       return { error: "Time limit exceeded", errorType: "TLE" };
@@ -43,7 +56,7 @@ const runCode = (cFilePath, ext, inpStr) => {
         return { error: "Runtime error", errorType: "RTE" };
       } else {
         console.log("run successful", result.stdout.toString());
-        return { output: result.stdout.toString() };
+        return { output: result.stdout.toString().trim() };
       }
     }
   } catch (err) {
@@ -91,51 +104,48 @@ const compile = (ext, code) => {
   }
 };
 
-app.route("/run").post((req, res) => {
-  const { code, ext, inpStr } = req.body;
-  const c = compile(ext, code);
-  if (c.error) {
-    console.log("Some error occured in compile function");
-    res.send(c);
-  } else {
-    const result = runCode(c.cFilePath, ext, inpStr);
-    res.send(result);
-  }
-});
+export const runF = async ({ code, ext, inpStr }) => {
+  return new Promise((resolve, reject) => {
+    const c = compile(ext, code);
+    console.log("c", c);
+    if (c.error) {
+      console.log("Some error occured in compile function");
+      resolve(c);
+    } else {
+      const result = runCode(c.cFilePath, ext, inpStr);
+      resolve(result);
+    }
+  });
+};
 
-app.route("/judge").post((req, res) => {
-  const { lang, code, pno, tcs } = req.body;
-  const c = compile(lang, code);
-  if (c.error) {
-    console.log("Some error occured in compile function");
-    res.send(c);
-  } else {
-    for (var i = 0; i < tcs["inputs"].length; i++) {
-      const o = runCode(c.cFilePath, lang, tcs["inputs"][i]);
-      if (o.error) {
-        console.log("o.error", o.error);
-        res.send(o);
-        break;
-      } else {
-        console.log("o.output", o.output);
-        if (o.output != tcs["outputs"][i]) {
-          console.log(`Wrong answer in testcase ${i}`);
-          res.send({
-            verdict: `Wrong Answer in testcase ${i}`,
-            errorType: `WA-TC${i}`,
-          });
+export const judgeF = async ({ lang, code, pno }) => {
+  return new Promise((resolve, reject) => {
+    const tcs = testcases[pno];
+    // console.log(testcases[pno])
+    const c = compile(lang, code);
+    if (c.error) {
+      console.log("Some error occured in compile function");
+      resolve(c);
+    } else {
+      for (var i = 0; i < tcs["inputs"].length; i++) {
+        const o = runCode(c.cFilePath, lang, tcs["inputs"][i]);
+        if (o.error) {
+          console.log("o.error", o.error);
+          resolve(o);
           break;
+        } else {
+          console.log("o.output", o.output);
+          if (o.output != tcs["outputs"][i]) {
+            console.log(`Wrong answer in testcase ${i}`);
+            resolve({
+              verdict: `Wrong Answer in testcase ${i}`,
+              errorType: `WA-TC${i}`,
+            });
+            break;
+          }
         }
       }
+      resolve({ verdict: "ACCEPTED" });
     }
-    if (!res.headersSent) {
-      res.send({ verdict: "ACCEPTED" });
-    }
-  }
-});
-
-const { PORT } = process.env;
-
-app.listen(PORT, () => {
-  console.log(`OC running at http://localhost:${PORT}`);
-});
+  });
+};

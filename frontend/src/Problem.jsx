@@ -1,47 +1,48 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useContext } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
 import Editor from "@monaco-editor/react";
+import { problemApi } from "./App.jsx";
+import authContext from "./AuthContext.jsx";
 
-const Problem = ({ isLoggedIn }) => {
+const Problem = () => {
+  const { isAuthenticated, token } = useContext(authContext);
+
   let [problem, setProblem] = useState({});
   let { pno } = useParams();
-
   let [lang, setLang] = useState("cpp");
   let [output, setOutput] = useState("");
   let [cinput, setCinput] = useState("");
 
   const editorRef = useRef(null);
-
   const editorDidMount = (editor, monaco) => {
     editorRef.current = editor;
   };
-
   const getCode = () => {
     return editorRef.current?.getValue();
   };
-  const api = axios.create({
-    baseURL: import.meta.env.VITE_BACKEND_URL,
-    withCredentials: true,
-  });
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!getCode()) {
       return setOutput("Code empty");
     }
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
       return setOutput("Need to be logged in to submit the code");
     }
-    api
-      .post("/problem/submit", {
-        lang: lang,
-        code: getCode(),
-        pno: problem.pno,
-      })
+    problemApi
+      .post(
+        "/submit",
+        {
+          lang: lang,
+          code: getCode(),
+          pno: problem.pno,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
       .then(
         (res) => {
-          // console.log("api res", res);
-          console.log(res);
+          // console.log(res);
           if (res.data.error) {
             setOutput(res.data.error);
           } else {
@@ -49,20 +50,16 @@ const Problem = ({ isLoggedIn }) => {
           }
         },
         (reason) => {
-          console.log("reason", reason);
+          // console.log("reason", reason);
           // if (reason.name == "AxiosError") {
           setOutput("Code not sumitted, please try again later");
-          // }
         }
-      )
-      .catch((err) => {
-        // console.log("err", err);
-      });
+      );
   };
 
   const getProblem = async (pno) => {
-    return await api
-      .get(`/problem/${pno}`)
+    return await problemApi
+      .get(`/${pno}`)
       .then(
         (res) => {
           if (!res.data.error) {
@@ -159,19 +156,19 @@ const Problem = ({ isLoggedIn }) => {
                 <span className="flex justify-center gap-5">
                   <button
                     onClick={() => {
-                      console.log(lang, getCode(), cinput);
+                      //   console.log(lang, getCode(), cinput);
                       if (!getCode()) {
                         setOutput("Code empty");
                       } else {
-                        api
-                          .post("/problem/run", {
+                        problemApi
+                          .post("/run", {
                             lang: lang,
                             code: getCode(),
                             cinput: cinput,
                           })
                           .then(
                             (res) => {
-                              console.log(res.data.output);
+                              //   console.log(res.data.output);
                               if (res.data.error) {
                                 setOutput(res.data.error);
                               } else {
@@ -206,4 +203,5 @@ const Problem = ({ isLoggedIn }) => {
     </>
   );
 };
+
 export default Problem;

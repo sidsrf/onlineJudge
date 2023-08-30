@@ -4,22 +4,29 @@
 # If you need more help, visit the Dockerfile reference guide at
 # https://docs.docker.com/engine/reference/builder/
 
-ARG NODE_VERSION=20.4.0
-ARG PNPM_VERSION=8.6.9
+ARG NODE_VERSION=20.5.1
+ARG PNPM_VERSION=8.6.12
 
-# FROM node:${NODE_VERSION}-alpine
-FROM node:${NODE_VERSION}
+FROM node:${NODE_VERSION}-alpine
 
 # Use production node environment by default.
 ENV NODE_ENV production
-ENV PORT 3001
+ENV PORT 3000
+# ENV SECRET session-secret here
+# ENV ALLOWED_ORIGINS http://localhost:5173
+# ENV MONGO_URI mongo uri here
+# ENV JWT_SECRET jwt-secret
+
+
+# RUN apk update
+RUN apk add --no-cache g++
+RUN apk add --no-cache python3
 
 # Install pnpm.
 RUN --mount=type=cache,target=/root/.npm \
     npm install -g pnpm@${PNPM_VERSION}
 
-# WORKDIR /usr/src/app
-WORKDIR /app
+WORKDIR /usr/src/app
 
 # Download dependencies as a separate step to take advantage of Docker's caching.
 # Leverage a cache mount to /root/.local/share/pnpm/store to speed up subsequent builds.
@@ -28,9 +35,7 @@ WORKDIR /app
 RUN --mount=type=bind,source=package.json,target=package.json \
     --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
     --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install
-
-RUN apt-get update && apt-get install -y g++ && apt-get install -y python3
+    pnpm install --prod --frozen-lockfile
 
 # Run the application as a non-root user.
 # USER node
@@ -39,7 +44,7 @@ RUN apt-get update && apt-get install -y g++ && apt-get install -y python3
 COPY . .
 
 # Expose the port that the application listens on.
-EXPOSE 3001
+EXPOSE 3000
 
 # Run the application.
-CMD node index.js
+CMD pnpm start

@@ -1,17 +1,13 @@
-import { useEffect, useState } from "react";
-import ProblemCard from "./ProblemCard";
-import axios from "axios";
+import { useState, useEffect } from "react";
+import ProblemCard from "./ProblemCard.jsx";
+import { problemApi } from "./App.jsx";
 
 const Problems = () => {
   let [problems, setProblems] = useState([]);
-  const api = axios.create({
-    baseURL: import.meta.env.VITE_BACKEND_URL,
-    withCredentials: true,
-  });
 
   const getProblems = async () => {
-    return await api
-      .get("/problem/all")
+    return await problemApi
+      .get("/all")
       .then(
         (res) => {
           if (!res.data.error) {
@@ -34,6 +30,7 @@ const Problems = () => {
       setProblems(res);
     });
   }, []);
+
   return (
     <>
       <div className="flex-grow py-24">

@@ -1,71 +1,46 @@
-require("dotenv").config();
+import dotenv from "dotenv";
+dotenv.config();
+import express from "express";
+import cors from "cors";
+import session from "express-session";
+import MongoStore from "connect-mongo";
+import connectDB from "./db.js";
+import passport from "./passport.js";
+import authRouter from "./auth.js";
+import problemRouter from "./problem.js";
+import subRouter from "./submissions.js";
 
-const express = require("express");
-const session = require("express-session");
-const MongoStore = require("connect-mongo");
-const cors = require("cors");
-// const cookieParser = require("cookie-parser");
-
-const { Submission } = require("./db");
-const passport = require("./passport");
-const authRoutes = require("./auth");
-const { PORT, MONGO_URI, SECRET } = process.env;
-const problemRoutes = require("./problem");
+const PORT = process.env.PORT || 3000;
+// const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+//   ? process.env.ALLOWED_ORIGINS.split(",")
+//   : [];
 const app = express();
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS.split(",") || "";
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      ALLOWED_ORIGINS.includes(origin) ? cb(null, true) : cb(null, false);
-    },
-    credentials: true,
-  })
-);
-// app.use(cookieParser());
+
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   session({
-    secret: SECRET,
+    secret: process.env.SECRET,
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: MONGO_URI }),
-    cookie: {
-      sameSite: "none",
-      secure: true,
-      httpOnly: true,
-    },
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI,
+    }),
   })
 );
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use("/auth", authRoutes);
-app.use("/problem", problemRoutes);
-
-app.route("/submissions/all").get((req, res) => {
-  Submission.find({}, "_id username pno lang code verdict time")
-    .then((submissions) => {
-      res.send(submissions);
-    })
-    .catch((err) => {
-      res.json({ error: "Some error occured" });
+app.use("/auth", authRouter);
+app.use("/problem", problemRouter);
+app.use("/submissions", subRouter);
+connectDB()
+  .then((mongoose) => {
+    app.listen(PORT, () => {
+      console.log(`http://localhost:${PORT}`);
     });
-});
-
-app.route("/submissions/:username").get((req, res) => {
-  Submission.find(
-    { username: req.params.username },
-    "_id username pno lang code verdict time"
-  )
-    .then((submissions) => {
-      res.send(submissions);
-    })
-    .catch((err) => {
-      res.send({ error: "Some error occured" });
-    });
-});
-
-app.listen(PORT, () => {
-  console.log(`http://localhost:${PORT}`);
-});
+  })
+  .catch((error) => {
+    console.log("Some error occured");
+  });
