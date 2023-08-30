@@ -32,5 +32,8 @@
 **/dist
 LICENSE
 README.md
-submissions/*
-compiled/*
+
+node_modules
+compiled
+submissions
+.env

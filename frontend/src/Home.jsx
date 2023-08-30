@@ -1,9 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
-const Home = ({ username, isLoggedIn }) => {
+import AuthContext from "./AuthContext";
+const Home = () => {
+  const { isAuthenticated, user } = useContext(AuthContext);
   useEffect(() => {
-    document.title = "mOJ | Home"
+    document.title = "mOJ | Home";
   }, []);
+
   return (
     <>
       <div className="flex flex-col flex-grow justify-center">
@@ -13,7 +16,7 @@ const Home = ({ username, isLoggedIn }) => {
             <div className="flex justify-around">
               <Link to="/problem/all">PROBLEMS</Link>
               <Link to="/login">
-                {isLoggedIn ? "LOGOUT " + username : "LOGIN"}
+                {isAuthenticated ? "LOGOUT " + user : "LOGIN"}
               </Link>
             </div>
           </div>

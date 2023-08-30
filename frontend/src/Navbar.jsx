@@ -1,6 +1,8 @@
+import { useContext } from "react";
+import AuthContext from "./AuthContext";
 import { Link } from "react-router-dom";
-
-const Navbar = ({ isLoggedIn, username }) => {
+const Navbar = () => {
+  const { isAuthenticated, user } = useContext(AuthContext);
   return (
     <>
       <div className="flex w-full bg-red-400 justify-between px-5 py-2">
@@ -16,7 +18,7 @@ const Navbar = ({ isLoggedIn, username }) => {
             <Link to="/submissions">SUBMISSIONS</Link>
           </li>
         </ul>
-        <Link to="/login">{isLoggedIn ? username : "LOGIN"}</Link>
+        <Link to="/login">{isAuthenticated ? user : "LOGIN"}</Link>
       </div>
     </>
   );
